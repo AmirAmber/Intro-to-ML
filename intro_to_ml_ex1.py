@@ -4,7 +4,7 @@ from sklearn.datasets import load_breast_cancer
 
 # Part 1: Single-Layer Neural Network with Gradient Descent
 class SingleLayerNN:
-    def __init__(self, input_size, step_size=0.005):
+    def __init__(self, input_size, step_size=0.001):
         self.step_size = step_size
         self.train_loss = []
         self.test_loss = []
