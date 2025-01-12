@@ -87,19 +87,19 @@ class DecisionTreeID3:
         self.tree = None
 
     def entropy(self, y):
-        counts = np.sum(y == 1) #######
-        q = counts / len(y)
+        positive_examples = np.sum(y == 1) #####
+        q = positive_examples / len(y)
         return -0.5*(q * np.log2(q) + (1-q)*np.log2(1-q)) if q > 0 and q < 1 else 0
 
     def information_gain(self, X_column, y, threshold):
         before_split_entropy = self.entropy(y)  # Calculate the entropy before the split
-        left_indices = X_column <= threshold  # Indices for the left side after the split
+        left_indices = X_column <= threshold # Indices for the left side after the split
         right_indices = X_column > threshold  # Indices for the right side after the split
         if sum(left_indices) == 0 or sum(right_indices) == 0:
             return 0  # If either side is empty, return 0 gain
         n = len(y)
-        n_left = sum(left_indices)
-        n_right = sum(right_indices)
+        n_left = np.sum(left_indices)
+        n_right = np.sum(right_indices)
         e_left = self.entropy(y[left_indices])  # Calculate entropy for each side
         e_right = self.entropy(y[right_indices])
         after_split_entropy = (n_left / n) * e_left + (n_right / n) * e_right  # Weighted average entropy of after the split
@@ -122,7 +122,7 @@ class DecisionTreeID3:
         return predicator, best_threshold
 
     def build_tree(self, X, y, depth=0):
-        if len(np.unique(y)) == 1 or (self.max_depth is not None and depth >= self.max_depth):
+        if np.all(y == 1) or np.all(y == 0) or (self.max_depth is not None and depth >= self.max_depth):
             return np.bincount(y).argmax()
         predicator, threshold = self.best_split(X, y)
         if predicator is None:
@@ -138,7 +138,7 @@ class DecisionTreeID3:
 
     def predict_sample(self, sample, tree):
         if not isinstance(tree, tuple):
-            return 'Not a decision tree'
+            return tree
         predicator, threshold, left_subtree, right_subtree = tree
         if sample[predicator] <= threshold:
             return self.predict_sample(sample, left_subtree)
@@ -154,26 +154,24 @@ class DecisionTreeID3:
         return np.sum(predictions == y) / len(y)
 
     def plot_tree(self):
-        def add_edges(tree, graph, parent=None, edge_label=""):
+        def plot_node(ax, tree, x, y, dx, dy):
             if not isinstance(tree, tuple):
-                graph.add_node(str(tree))
-                if parent:
-                    graph.add_edge(parent, str(tree), label=edge_label)
+                ax.text(x, y, str(tree), ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
                 return
-            col, threshold, left_subtree, right_subtree = tree
-            node_label = f"X[{col}] <= {threshold}"
-            graph.add_node(node_label)
-            if parent:
-                graph.add_edge(parent, node_label, label=edge_label)
-            add_edges(left_subtree, graph, node_label, "True")
-            add_edges(right_subtree, graph, node_label, "False")
+            predicator, threshold, left_subtree, right_subtree = tree
+            node_label = f"X[{predicator}]\n<=\n{threshold}"
+            ax.text(x, y, node_label, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
+            ax.plot([x, x - dx], [y - dy, y - 2 * dy], 'k-')
+            ax.plot([x, x + dx], [y - dy, y - 2 * dy], 'k-')
+            plot_node(ax, left_subtree, x - dx, y - 2 * dy, dx / 1.8, dy)
+            plot_node(ax, right_subtree, x + dx, y - 2 * dy, dx / 1.8, dy)
 
-        graph = nx.DiGraph()
-        add_edges(self.tree, graph)
-        pos = nx.spring_layout(graph)
-        edge_labels = nx.get_edge_attributes(graph, 'label')
-        nx.draw(graph, pos, with_labels=True, node_size=3000, node_color="skyblue", font_size=10, font_weight="bold")
-        nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
+        fig, ax = plt.subplots(figsize=(28, 28))
+        ax.set_axis_off()
+        plot_node(ax, self.tree, 1, 1, 16, 12)
+        plt.show()
+
+        ax.set_axis_off()
         plt.show()
 
 
@@ -203,7 +201,7 @@ y_train, y_test = y[:split_index], y[split_index:]
 # Train and evaluate the model
 
 #accuracy = nn.accuracy(X_test, y_test, nn.weights_0, nn.weights_1)
-#print(f'Accuracy: {accuracy}')
+#print(f'Accuracy: {accuracy * 100:.2f}%')
 #nn.plot_loss()
 
 
