@@ -170,7 +170,7 @@ class DecisionTreeID3:
         ax.set_axis_off()
         plot_node(ax, self.tree, 1, 1, 16, 12)
         plt.show()
-
+##
         ax.set_axis_off()
         plt.show()
 
