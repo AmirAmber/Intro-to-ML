@@ -4,34 +4,28 @@ from sklearn.datasets import load_breast_cancer
 
 # Part 1: Single-Layer Neural Network with Gradient Descent
 class SingleLayerNN:
-    def __init__(self, input_size, step_size=0.001):
-        # Initialize the neural network with input size and step size
+    def __init__(self, input_size, step_size=0.000005):
         self.step_size = step_size
         self.train_loss = []
         self.test_loss = []
 
-    def sigmoid(self, z):
-        # Sigmoid activation function
+    def sigmoid(self, z):      #activation function
         z = np.clip(z, -700, 700)
         return 1 / (1 + np.exp(-z))
 
-    def gradient_sigmoid(self, z):
-        # Derivative of the sigmoid function
+    def gradient_sigmoid(self, z):      #derivative of the activation function
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
-    def cross_entropy_loss(self, y_true, y_pred):
-        # Cross-entropy loss function
+    def cross_entropy_loss(self, y_true, y_pred):      #loss function
         return -y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred)
 
-    def training(self, X_train, y_train, X_test, y_test, epochs=500):
-        # Training function
+    def training(self, X_train, y_train, X_test, y_test, epochs=500):       #training the model with gradient descent
         X_train_with_bias = np.hstack((X_train, np.ones((X_train.shape[0], 1))))
         X_test_with_bias = np.hstack((X_test, np.ones((X_test.shape[0], 1))))
-        w_0 = np.random.rand(X_train_with_bias.shape[1], len(X_test_with_bias[1])) * 0.01
-        w_1 = np.random.rand(len(X_test_with_bias[1]), 1) * 0.01
+        w_0 = np.random.rand(X_train_with_bias.shape[1], len(X_test_with_bias[1])) * 0.1
+        w_1 = np.random.rand(len(X_test_with_bias[1]), 1) * 0.1
 
-        for epoch in range(epochs):
-            #  gradient descent for each epoch
+        for epoch in range(epochs):     #loop through the epochs
             w_0, w_1 = self.gradient_descent(X_train_with_bias, y_train, w_0, w_1, self.step_size)
             train_pred = self.predict(X_train, w_0, w_1)
             test_pred = self.predict(X_test, w_0, w_1)
@@ -40,12 +34,12 @@ class SingleLayerNN:
             self.train_loss.append(train_loss)
             self.test_loss.append(test_loss)
 
-        # Store trained weights
+
         self.weights_0 = w_0
         self.weights_1 = w_1
 
-    def gradient_descent(self, a_0, y, w_0, w_1, eta):
-        # Gradient descent algorithm to update weights
+
+    def gradient_descent(self, a_0, y, w_0, w_1, eta):      #gradient descent function
         w_0_change = np.zeros_like(w_0)
         w_1_change = np.zeros_like(w_1)
         for i in range(a_0.shape[0]):
@@ -63,8 +57,7 @@ class SingleLayerNN:
         w_1 -= eta * w_1_change
         return w_0, w_1
 
-    def predict(self, X, w_0_trained, w_1_trained):
-        # Predict function to make predictions with trained weights
+    def predict(self, X, w_0_trained, w_1_trained):     #predict function
         X_with_bias = np.hstack((X, np.ones((X.shape[0], 1))))
         a_1 = np.dot(X_with_bias, w_0_trained)
         z_1 = self.sigmoid(a_1)
@@ -72,14 +65,12 @@ class SingleLayerNN:
         y_predicted = self.sigmoid(a_2)
         return y_predicted
 
-    def accuracy(self, X, y, w_0_trained, w_1_trained):
-        # Calculate accuracy
+    def accuracy(self, X, y, w_0_trained, w_1_trained):     #accuracy function
         y_predicted = self.predict(X, w_0_trained, w_1_trained)
         y_predicted = np.round(y_predicted)
         return np.sum(y_predicted == y) / len(y)
 
-    def plot_loss(self):
-        # Plot training and testing loss over epochs
+    def plot_loss(self):     #plotting the loss curve for train and test data
         plt.plot(self.train_loss, label='Train Loss')
         plt.plot(self.test_loss, label='Test Loss')
         plt.xlabel('Epoch')
@@ -87,10 +78,113 @@ class SingleLayerNN:
         plt.legend()
         plt.show()
 
+
+# Part 2: decision tree with ID3 algorithm with entropy potential function
+
+class DecisionTreeID3:
+    def __init__(self, max_depth=None):
+        self.max_depth = max_depth
+        self.tree = None
+
+    def entropy(self, y):
+        positive_examples = np.sum(y == 1) #####
+        q = positive_examples / len(y)
+        return -0.5*(q * np.log2(q) + (1-q)*np.log2(1-q)) if q > 0 and q < 1 else 0
+
+    def information_gain(self, X_column, y, threshold):
+        before_split_entropy = self.entropy(y)  # Calculate the entropy before the split
+        left_indices = X_column <= threshold # Indices for the left side after the split
+        right_indices = X_column > threshold  # Indices for the right side after the split
+        if sum(left_indices) == 0 or sum(right_indices) == 0:
+            return 0  # If either side is empty, return 0 gain
+        n = len(y)
+        n_left = np.sum(left_indices)
+        n_right = np.sum(right_indices)
+        e_left = self.entropy(y[left_indices])  # Calculate entropy for each side
+        e_right = self.entropy(y[right_indices])
+        after_split_entropy = (n_left / n) * e_left + (n_right / n) * e_right  # Weighted average entropy of after the split
+        return before_split_entropy - after_split_entropy  # Information gain
+
+
+
+    def best_split(self, X, y):
+        best_gain = -1
+        predicator = None
+        best_threshold = None
+        for p in range(X.shape[1]):
+            thresholds = np.unique(X[:, p])
+            for threshold in thresholds:
+                gain = self.information_gain(X[:, p], y, threshold)
+                if gain > best_gain:
+                    best_gain = gain
+                    predicator = p
+                    best_threshold = threshold
+        return predicator, best_threshold
+
+    def build_tree(self, X, y, depth=0):
+        if np.all(y == 1) or np.all(y == 0) or (self.max_depth is not None and depth >= self.max_depth):
+            return np.bincount(y).argmax()
+        predicator, threshold = self.best_split(X, y)
+        if predicator is None:
+            return np.bincount(y).argmax()
+        left_indices = X[:, predicator] <= threshold
+        right_indices = X[:, predicator] > threshold
+        left_subtree = self.build_tree(X[left_indices], y[left_indices], depth + 1)
+        right_subtree = self.build_tree(X[right_indices], y[right_indices], depth + 1)
+        return (predicator, threshold, left_subtree, right_subtree)
+
+    def fit(self, X, y):
+        self.tree = self.build_tree(X, y)
+
+    def predict_sample(self, sample, tree):
+        if not isinstance(tree, tuple):
+            return tree
+        predicator, threshold, left_subtree, right_subtree = tree
+        if sample[predicator] <= threshold:
+            return self.predict_sample(sample, left_subtree)
+        else:
+            return self.predict_sample(sample, right_subtree)
+
+    def predict(self, X):
+        return np.array([self.predict_sample(sample, self.tree) for sample in X])
+
+
+    def accuracy(self, X, y):
+        predictions = self.predict(X)
+        return np.sum(predictions == y) / len(y)
+
+    def plot_tree(self):
+        def plot_node(ax, tree, x, y, dx, dy):
+            if not isinstance(tree, tuple):
+                ax.text(x, y, str(tree), ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
+                return
+            predicator, threshold, left_subtree, right_subtree = tree
+            node_label = f"X[{predicator}]\n<=\n{threshold}"
+            ax.text(x, y, node_label, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
+            ax.plot([x, x - dx], [y - dy, y - 2 * dy], 'k-')
+            ax.plot([x, x + dx], [y - dy, y - 2 * dy], 'k-')
+            plot_node(ax, left_subtree, x - dx, y - 2 * dy, dx / 1.8, dy)
+            plot_node(ax, right_subtree, x + dx, y - 2 * dy, dx / 1.8, dy)
+
+        fig, ax = plt.subplots(figsize=(28, 28))
+        ax.set_axis_off()
+        plot_node(ax, self.tree, 1, 1, 16, 12)
+        plt.show()
+        ax.set_axis_off()
+        plt.show()
+
+
+
+
+
+
+
+
 # Load data
 data = load_breast_cancer()
-X = data.data[:, 0:]  # Remove the first column and take the rest as X
-y = data.target   # Take the second column as y
+X = data.data # features
+y = data.target   # target variable
+
 
 # Split data into 80/20 train/test
 indices = np.arange(X.shape[0])
@@ -100,10 +194,21 @@ y = y[indices]
 split_index = int(0.8 * X.shape[0])
 X_train, X_test = X[:split_index], X[split_index:]
 y_train, y_test = y[:split_index], y[split_index:]
-
-# Train and evaluate the model
 nn = SingleLayerNN(input_size=X_train.shape[1])
 nn.training(X_train, y_train, X_test, y_test)
+
+# Train and evaluate the model
+
 accuracy = nn.accuracy(X_test, y_test, nn.weights_0, nn.weights_1)
-print(f'Accuracy: {accuracy}')
+print(f'Accuracy: {accuracy :.2f}%')
 nn.plot_loss()
+
+
+dt = DecisionTreeID3(max_depth=10)
+dt.fit(X_train, y_train)
+predictions = dt.predict(X_test)
+accuracy = dt.accuracy(X_test, y_test)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+
+# Plot the tree
+dt.plot_tree()
