@@ -63,6 +63,10 @@ class SingleLayerNN:
         self.weights_0 = w_0
         self.weights_1 = w_1
 
+    def print_weights(self):
+        print(self.weights_0)
+        print(self.weights_1)
+
     def accuracy_of_nn(self, X, y, w_0_trained, w_1_trained):     #accuracy function
         X_with_bias = np.hstack((X, np.ones((X.shape[0], 1))))
         y_predicted = self.predict_nn(X_with_bias, w_0_trained, w_1_trained)
@@ -134,6 +138,8 @@ class DecisionTreeID3:
         right_subtree = self.build_tree(X[right_indices], y[right_indices], depth + 1)
         return (predicator, threshold, left_subtree, right_subtree)
 
+    def fit(self, X, y):
+        self.tree = self.build_tree(X, y)
 
     def predict_sample_dt(self, sample, tree):
         if not isinstance(tree, tuple):
@@ -202,9 +208,10 @@ nn = SingleLayerNN(input_size=X_train.shape[1])
 nn.training(X_train, y_train, X_test, y_test)
 nn.accuracy_of_nn(X_test, y_test, nn.weights_0, nn.weights_1)
 nn.plot_loss()
+nn.print_weights()
 
 #Decision Tree
 dt = DecisionTreeID3(max_depth=10)
-dt.build_tree(X_train, y_train)
+dt.fit(X_train, y_train)
 dt.accuracy_of_dt(X_test, y_test)
 dt.plot_tree()
