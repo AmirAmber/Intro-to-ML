@@ -3,84 +3,96 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import load_breast_cancer
 
 # Part 1: Single-Layer Neural Network with Gradient Descent
-class SingleLayerNN:
-    def __init__(self, input_size, step_size=0.000005):
+class NeuralNetwork:
+    def __init__(self, input_size, hidden_size, output_size, step_size=0.01):
         self.step_size = step_size
         self.train_loss = []
         self.test_loss = []
+        self.W_0 = np.random.uniform(-1, 1, (input_size, hidden_size))
+        self.b_0 = np.zeros(hidden_size)
+        self.W_1 = np.random.uniform(-1, 1, (hidden_size, output_size))
+        self.b_1 = np.zeros(output_size)
 
-    def sigmoid(self, z):      #activation function
+    def sigmoid(self, z):
         z = np.clip(z, -700, 700)
         return 1 / (1 + np.exp(-z))
 
-    def gradient_sigmoid(self, z):      #derivative of the activation function
+    def gradient_sigmoid(self, z):  # derivative of the activation function
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
-    def cross_entropy_loss(self, y_true, y_pred):      #loss function
+    def cross_entropy_loss(self, y_true, y_pred):
+        y_pred = np.clip(y_pred, 1e-12, 1 - 1e-12)
         return -y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred)
 
-    def gradient_descent(self, a_0, y, w_0, w_1, eta):      #gradient descent function
-        w_0_change = np.zeros_like(w_0)
-        w_1_change = np.zeros_like(w_1)
-        for i in range(a_0.shape[0]):
-            a_1 = np.dot(a_0[i], w_0)
-            z_1 = self.sigmoid(a_1)
-            a_2 = np.dot(z_1, w_1)
-            y_predicted = self.sigmoid(a_2)
-            delta_2 = (y_predicted - y[i])/(y_predicted*(1-y_predicted))
-            delta_1 = np.dot(delta_2, w_1.T) * self.gradient_sigmoid(a_1)
-            grad_w_1 = np.dot(z_1[:, np.newaxis], delta_2[np.newaxis, :])
-            grad_w_0 = np.dot(a_0[i][:, np.newaxis], delta_1[np.newaxis, :])
-            w_0_change += grad_w_0
-            w_1_change += grad_w_1
-        w_0 -= eta * w_0_change
-        w_1 -= eta * w_1_change
-        return w_0, w_1
-
-    def predict_nn(self, X, w_0_trained, w_1_trained):     #predict function
-        a_1 = np.dot(X, w_0_trained)
+    def forward_pass(self, X):
+        a_1 = np.dot(X, self.W_0) + self.b_0
         z_1 = self.sigmoid(a_1)
-        a_2 = np.dot(z_1, w_1_trained)
-        y_predicted = self.sigmoid(a_2)
-        return y_predicted
+        a_2 = np.dot(z_1, self.W_1) + self.b_1
+        z_2 = self.sigmoid(a_2)
+        return a_1, z_1, a_2, z_2
 
-    def training(self, X_train, y_train, X_test, y_test, epochs=500):       #training the model with gradient descent
-        X_train_with_bias = np.hstack((X_train, np.ones((X_train.shape[0], 1))))
-        X_test_with_bias = np.hstack((X_test, np.ones((X_test.shape[0], 1))))
-        w_0 = np.random.rand(X_train_with_bias.shape[1], len(X_train_with_bias[1])) * 0.1
-        w_1 = np.random.rand(len(X_train_with_bias[1]), 1) * 0.1
+    def back_propagation(self, X, y):
+        a_1, z_1, a_2, z_2 = self.forward_pass(X)
+        m = X.shape[0]
+        delta_2 = z_2 - y.reshape(-1, 1)
+        dW_1 = np.dot(z_1.T, delta_2) / m
+        db_1 = np.sum(delta_2) / m
+        delta_1 = np.dot(delta_2, self.W_1.T) * self.gradient_sigmoid(a_2)
+        dW_0 = np.dot(X.T, delta_1) / m
+        db_0 = np.sum(delta_1) / m
+        return dW_0, db_0, dW_1, db_1
 
-        for epoch in range(epochs):     #loop through the epochs
-            w_0, w_1 = self.gradient_descent(X_train_with_bias, y_train, w_0, w_1, self.step_size)
-            train_pred = self.predict_nn(X_train_with_bias, w_0, w_1)
-            test_pred = self.predict_nn(X_test_with_bias, w_0, w_1)
+    def gradient_descent(self, dW_0, db_0, dW_1, db_1):
+        self.W_0 -= self.step_size * dW_0
+        self.b_0 -= self.step_size * db_0
+        self.W_1 -= self.step_size * dW_1
+        self.b_1 -= self.step_size * db_1
+
+    def predict_nn(self, X):
+        a_1, z_1, a_2, z_2 = self.forward_pass(X)
+        return z_2
+
+
+    def training_nn(self, X_train, y_train, X_test, y_test, epochs=1000, tolerance=1e-4):
+        for epoch in range(epochs):
+            dW_0, db_0, dW_1, db_1 = self.back_propagation(X_train, y_train)
+            self.gradient_descent(dW_0, db_0, dW_1, db_1)
+
+            train_pred = self.predict_nn(X_train)
+            test_pred = self.predict_nn(X_test)
+
             train_loss_for_epoch = np.mean(self.cross_entropy_loss(y_train, train_pred))
             test_loss_for_epoch = np.mean(self.cross_entropy_loss(y_test, test_pred))
+
             self.train_loss.append(train_loss_for_epoch)
             self.test_loss.append(test_loss_for_epoch)
 
+            if epoch > 0 and abs(self.train_loss[-2] - self.train_loss[-1]) < tolerance:
+                print(f"Training stopped early at epoch {epoch} due to minimal loss change.")
+                break
 
-        self.weights_0 = w_0
-        self.weights_1 = w_1
+        self.weights = self.W_0, self.W_1
+        self.biases = self.b_0, self.b_1
+
 
     def print_weights(self):
-        print(self.weights_0)
-        print(self.weights_1)
+        print(f'W0 is: {self.W_0} and its bias is: {self.b_0}')
+        print(f'W1 is: {self.W_1} and its bias is: {self.b_1}')
 
-    def accuracy_of_nn(self, X, y, w_0_trained, w_1_trained):     #accuracy function
-        X_with_bias = np.hstack((X, np.ones((X.shape[0], 1))))
-        y_predicted = self.predict_nn(X_with_bias, w_0_trained, w_1_trained)
-        y_predicted = np.round(y_predicted)
-        accuracy = np.sum(y_predicted == y) / len(y)
-        print(f'The accuracy of this neural network is: {accuracy :.2f}%')
+    def accuracy_nn(self, X, y):
+        y_predicted = self.predict_nn(X)
+        y_predicted = (y_predicted > 0.5).astype(int)
+        accuracy = np.sum(y_predicted == y.reshape(-1, 1)) / len(y)
+        print(f'The accuracy of this neural network is: {accuracy * 100:.2f}%')
         return accuracy
 
-    def plot_loss(self):     #plotting the loss curve for train and test data
+    def plot_loss_nn(self, accuracy):
         plt.plot(self.train_loss, label='Train Loss')
         plt.plot(self.test_loss, label='Test Loss')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.legend()
+        plt.title(f'Loss Curve (Accuracy: {accuracy * 100:.2f}%)')
         plt.show()
 
 
@@ -204,14 +216,20 @@ y_train, y_test = y[:split_index], y[split_index:]
 
 # Train and evaluate the model
 #Neural Network
-nn = SingleLayerNN(input_size=X_train.shape[1])
-nn.training(X_train, y_train, X_test, y_test)
-nn.accuracy_of_nn(X_test, y_test, nn.weights_0, nn.weights_1)
-nn.plot_loss()
+nn = NeuralNetwork(input_size=X_train.shape[1], hidden_size=50, output_size=1, step_size=0.01)
+nn.training_nn(X_train, y_train, X_test, y_test, epochs=800)
+accuracy_of_nn = nn.accuracy_nn(X_test, y_test)
 nn.print_weights()
+nn.plot_loss_nn(accuracy_of_nn)
 
 #Decision Tree
 dt = DecisionTreeID3(max_depth=10)
 dt.fit(X_train, y_train)
-dt.accuracy_of_dt(X_test, y_test)
+accuracy_of_dt = dt.accuracy_of_dt(X_test, y_test)
 dt.plot_tree()
+
+# Part 3: Compare the two models
+if accuracy_of_nn > accuracy_of_dt:
+    print('The neural network model is better than the decision tree model.')
+else:
+    print('The decision tree model is better than the neural network model.')
