@@ -223,7 +223,7 @@ accuracy_of_nn = nn.accuracy_nn(X_test, y_test)
 nn.plot_loss_nn(accuracy_of_nn)
 
 #Decision Tree
-dt = DecisionTreeID3(max_depth=10)
+dt = DecisionTreeID3(max_depth=5)
 dt.fit(X_train, y_train)
 accuracy_of_dt = dt.accuracy_of_dt(X_test, y_test)
 dt.plot_tree()
