@@ -172,7 +172,8 @@ class DecisionTreeID3:
         print(f'The accuracy of this decision tree is: {accuracy * 100:.2f}%')
         return accuracy
 
-    def plot_tree(self):
+
+    def plot_tree(self, accuracy):
         def plot_node(ax, tree, x, y, dx, dy):
             if not isinstance(tree, tuple):
                 ax.text(x, y, str(tree), ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
@@ -187,10 +188,10 @@ class DecisionTreeID3:
 
         fig, ax = plt.subplots(figsize=(28, 28))
         ax.set_axis_off()
-        plot_node(ax, self.tree, 1, 1, 16, 12)
+        plot_node(ax, self.tree, 1, -20, 16, 12)
+        plt.title(f'Decision Tree (Accuracy: {accuracy * 100:.2f}%)', pad=20)
         plt.show()
-        ax.set_axis_off()
-        plt.show()
+
 
 
 
@@ -217,7 +218,7 @@ y_train, y_test = y[:split_index], y[split_index:]
 # Train and evaluate the model
 #Neural Network
 nn = NeuralNetwork(input_size=X_train.shape[1], hidden_size=50, output_size=1, step_size=0.01)
-nn.training_nn(X_train, y_train, X_test, y_test, epochs=800)
+nn.training_nn(X_train, y_train, X_test, y_test, epochs=400)
 nn.print_weights()
 accuracy_of_nn = nn.accuracy_nn(X_test, y_test)
 nn.plot_loss_nn(accuracy_of_nn)
@@ -226,7 +227,7 @@ nn.plot_loss_nn(accuracy_of_nn)
 dt = DecisionTreeID3(max_depth=10)
 dt.fit(X_train, y_train)
 accuracy_of_dt = dt.accuracy_of_dt(X_test, y_test)
-dt.plot_tree()
+dt.plot_tree(accuracy_of_dt)
 
 # Part 3: Compare the two models
 if accuracy_of_nn > accuracy_of_dt:
