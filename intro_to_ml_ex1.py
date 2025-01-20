@@ -223,13 +223,9 @@ accuracy_of_nn = nn.accuracy_nn(X_test, y_test)
 nn.plot_loss_nn(accuracy_of_nn)
 
 #Decision Tree
-dt = DecisionTreeID3(max_depth=5)
+dt = DecisionTreeID3(max_depth=10)
 dt.fit(X_train, y_train)
 accuracy_of_dt = dt.accuracy_of_dt(X_test, y_test)
 dt.plot_tree()
 
-# Part 3: Compare the two models
-if accuracy_of_nn > accuracy_of_dt:
-    print('The neural network model is better than the decision tree model.')
-else:
-    print('The decision tree model is better than the neural network model.')
+
