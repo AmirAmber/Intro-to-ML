@@ -218,8 +218,8 @@ y_train, y_test = y[:split_index], y[split_index:]
 #Neural Network
 nn = NeuralNetwork(input_size=X_train.shape[1], hidden_size=50, output_size=1, step_size=0.01)
 nn.training_nn(X_train, y_train, X_test, y_test, epochs=800)
-accuracy_of_nn = nn.accuracy_nn(X_test, y_test)
 nn.print_weights()
+accuracy_of_nn = nn.accuracy_nn(X_test, y_test)
 nn.plot_loss_nn(accuracy_of_nn)
 
 #Decision Tree
