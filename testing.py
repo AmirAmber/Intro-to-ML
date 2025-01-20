@@ -68,6 +68,10 @@ class NeuralNetwork:
         self.weights = self.W_0, self.W_1
         self.biases = self.b_0, self.b_1
 
+    def print_weights(self):
+        print(f'W0 is: {self.W_0} and its bias is: {self.b_0}')
+        print(f'W1 is: {self.W_1} and its bias is: {self.b_1}')
+
     def accuracy(self, X, y):
         y_predicted = self.predict(X)
         y_predicted = (y_predicted > 0.5).astype(int)
@@ -100,4 +104,5 @@ y_train, y_test = y[:split_index], y[split_index:]
 nn = NeuralNetwork(input_size=X_train.shape[1], hidden_size=50, output_size=1, step_size=0.01)
 nn.training(X_train, y_train, X_test, y_test, epochs=1000)
 nn.accuracy(X_test, y_test)
+nn.print_weights()
 nn.plot_loss()
