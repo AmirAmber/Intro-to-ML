@@ -97,7 +97,7 @@ X_train, X_test = X[:split_index], X[split_index:]
 y_train, y_test = y[:split_index], y[split_index:]
 
 # Initialize and train the network
-nn = NeuralNetwork(input_size=X_train.shape[1], hidden_size=32, output_size=1, step_size=0.01)
-nn.training(X_train, y_train, X_test, y_test, epochs=600)
+nn = NeuralNetwork(input_size=X_train.shape[1], hidden_size=50, output_size=1, step_size=0.01)
+nn.training(X_train, y_train, X_test, y_test, epochs=1000)
 nn.accuracy(X_test, y_test)
 nn.plot_loss()
